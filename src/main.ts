@@ -36,17 +36,24 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow server-to-server / Postman / curl (no Origin header)
+      // 1. Allow if no origin (Postman, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Normalize origin for comparison (remove trailing slash)
+      // 2. Allow ALL origins if "*" is in allowedOrigins
+      if (allowedOrigins.includes('*')) return callback(null, true);
+
+      // 3. Check against specific allowed origins
       const normalizedOrigin = origin.replace(/\/$/, '');
+      const isAllowed = allowedOrigins.some(
+        (o) => normalizedOrigin === o || normalizedOrigin.startsWith(o + '/'),
+      );
 
-      if (allowedOrigins.some((o) => normalizedOrigin === o || normalizedOrigin.startsWith(o + '/'))) {
-        return callback(null, true);
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS: Origin "${origin}" not allowed`);
+        callback(new Error(`CORS: Origin "${origin}" not allowed`));
       }
-
-      callback(new Error(`CORS: Origin "${origin}" not allowed`));
     },
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],

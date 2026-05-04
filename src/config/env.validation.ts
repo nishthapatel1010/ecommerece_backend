@@ -5,7 +5,9 @@ export const envValidationSchema = Joi.object({
     .valid('development', 'production', 'test')
     .default('development'),
   
-  // Production DB
+  // Production
+  RENDER_EXTERNAL_URL: Joi.string().optional(),
+  FRONTEND_URL: Joi.string().optional(), // Allow any string (e.g., "*", or comma-separated URLs)
   DATABASE_URL: Joi.string().optional(),
   DB_URL: Joi.string().optional(),
 
@@ -35,4 +37,8 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().required(),
   CLOUDINARY_API_KEY: Joi.string().required(),
   CLOUDINARY_API_SECRET: Joi.string().required(),
+
+  // Upload Validations
+  MAX_FILE_SIZE: Joi.any().optional(),
+  ALLOWED_EXTENSIONS: Joi.string().optional(),
 });
