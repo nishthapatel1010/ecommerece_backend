@@ -8,7 +8,7 @@ import { User, UserRole, UserStatus } from '../../user/entities/user.entity';
 import { BuyerRequest, BuyerRequestStatus } from '../../user/entities/buyer-request.entity';
 import { AuthToken } from '../../user/entities/auth-token.entity';
 import { BuyerRegisterDto } from '../dto/buyer-register.dto';
-import { BuyerLoginDto, BuyerLoginWithCodeDto } from '../dto/buyer-login.dto';
+import { BuyerLoginDto } from '../dto/buyer-login.dto';
 import { AdminRegisterDto, AdminLoginDto } from '../dto/admin-auth.dto';
 import { AdminService } from '../../admin/services/admin.service';
 
@@ -132,32 +132,23 @@ export class AuthService {
   }
 
   async buyerLogin(dto: BuyerLoginDto) {
-    const user = await this.userRepo.findOne({ where: { email: dto.email, role: UserRole.BUYER } });
-    if (!user) throw new UnauthorizedException('Invalid credentials.');
+    const { email, password, cid } = dto;
 
-    const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException('Invalid credentials.');
-
-    if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('Your account is not approved yet.');
+    // 1. Validate that exactly one of password or cid is provided
+    if ((password && cid) || (!password && !cid)) {
+      throw new BadRequestException('Please provide either a password or a CID code, but not both.');
     }
 
-    const tokens = await this.generateTokenPair(user);
-    return {
-      success: true,
-      message: 'Login successful.',
-      data: {
-        user: { id: user.id, email: user.email, role: user.role, cid: user.cid },
-        ...tokens,
-      },
-    };
-  }
+    const user = await this.userRepo.findOne({ where: { email, role: UserRole.BUYER } });
+    if (!user) throw new UnauthorizedException('Invalid credentials.');
 
-  async buyerLoginWithCode(dto: BuyerLoginWithCodeDto) {
-    const user = await this.userRepo.findOne({
-      where: { email: dto.email, cid: dto.cid, role: UserRole.BUYER },
-    });
-    if (!user) throw new UnauthorizedException('Invalid email or code.');
+    // 2. Validate based on provided credential
+    if (password) {
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) throw new UnauthorizedException('Invalid credentials.');
+    } else if (cid) {
+      if (user.cid !== cid) throw new UnauthorizedException('Invalid credentials.');
+    }
 
     if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Your account is not approved yet.');

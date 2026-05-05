@@ -2,7 +2,7 @@ import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { BuyerRegisterDto } from '../dto/buyer-register.dto';
-import { BuyerLoginDto, BuyerLoginWithCodeDto } from '../dto/buyer-login.dto';
+import { BuyerLoginDto } from '../dto/buyer-login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { AdminRegisterDto, AdminLoginDto } from '../dto/admin-auth.dto';
 
@@ -30,15 +30,9 @@ export class AuthController {
   }
 
   @Post('buyer/login')
-  @ApiOperation({ summary: 'Buyer login — returns access_token + refresh_token' })
+  @ApiOperation({ summary: 'Buyer login — accepts email + (password OR cid)' })
   buyerLogin(@Body() dto: BuyerLoginDto) {
     return this.authService.buyerLogin(dto);
-  }
-
-  @Post('buyer/login/code')
-  @ApiOperation({ summary: 'Buyer login with email & CID code' })
-  buyerLoginWithCode(@Body() dto: BuyerLoginWithCodeDto) {
-    return this.authService.buyerLoginWithCode(dto);
   }
 
   @Post('refresh')
