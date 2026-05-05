@@ -31,6 +31,7 @@ async function bootstrap() {
       'http://localhost:4200',
       'http://localhost:5173',
       'http://localhost:8080',
+      '*'
     );
   }
 
@@ -42,7 +43,11 @@ async function bootstrap() {
       // 2. Allow ALL origins if "*" is in allowedOrigins
       if (allowedOrigins.includes('*')) return callback(null, true);
 
-      // 3. Check against specific allowed origins
+      // 3. Allow any localhost or 127.0.0.1 origin (any port)
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (isLocalhost) return callback(null, true);
+
+      // 4. Check against specific allowed origins
       const normalizedOrigin = origin.replace(/\/$/, '');
       const isAllowed = allowedOrigins.some(
         (o) => normalizedOrigin === o || normalizedOrigin.startsWith(o + '/'),
@@ -51,12 +56,22 @@ async function bootstrap() {
       if (isAllowed) {
         callback(null, true);
       } else {
-        console.warn(`CORS: Origin "${origin}" not allowed`);
+        console.warn(`[CORS] Blocked origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
         callback(new Error(`CORS: Origin "${origin}" not allowed`));
       }
     },
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'Origin',
+      'Access-Control-Allow-Origin',
+      'sentry-trace',
+      'baggage',
+      'x-api-key',
+    ],
     credentials: true,
   });
   // ─────────────────────────────────────────────────────────────────────────
