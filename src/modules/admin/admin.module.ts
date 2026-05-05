@@ -16,10 +16,13 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { env } from '../../config/env';
 
+import { UploadModule } from '../upload/upload.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, BuyerRequest, BuyerProfile,Product]),
     JwtModule.register({ secret: env.JWT_SECRET }),
+    UploadModule,
   ],
   controllers: [AdminController, ProductAdminController],
   providers: [AdminService, JwtAuthGuard, RolesGuard,ProductAdminService],

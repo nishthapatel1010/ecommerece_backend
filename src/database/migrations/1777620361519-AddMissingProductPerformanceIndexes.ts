@@ -4,11 +4,6 @@ export class AddMissingProductPerformanceIndexes1777620361519 implements Migrati
 
   public async up(queryRunner: QueryRunner): Promise<void> {
 
-    // BRAND FILTER INDEX
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand)
-    `);
-
     // AVAILABLE / STOCK FILTER INDEX
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS idx_products_available ON products(available)
@@ -16,8 +11,8 @@ export class AddMissingProductPerformanceIndexes1777620361519 implements Migrati
 
     //  COMPOSITE INDEX (SEARCH + FILTER PERFORMANCE)
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_products_name_brand 
-      ON products(name, brand)
+      CREATE INDEX IF NOT EXISTS idx_products_name 
+      ON products(name)
     `);
 
     // UPC INDEX (external lookup / scraping matching)
@@ -28,9 +23,8 @@ export class AddMissingProductPerformanceIndexes1777620361519 implements Migrati
 
   public async down(queryRunner: QueryRunner): Promise<void> {
 
-    await queryRunner.query(`DROP INDEX IF EXISTS idx_products_brand`);
     await queryRunner.query(`DROP INDEX IF EXISTS idx_products_available`);
-    await queryRunner.query(`DROP INDEX IF EXISTS idx_products_name_brand`);
+    await queryRunner.query(`DROP INDEX IF EXISTS idx_products_name`);
     await queryRunner.query(`DROP INDEX IF EXISTS idx_products_upc`);
   }
 }

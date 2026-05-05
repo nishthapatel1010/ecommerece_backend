@@ -26,6 +26,12 @@ export class CartService {
     private readonly productRepo: Repository<Product>,
   ) {}
 
+  private generateSessionId(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const code = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `SES-${code}`;
+  }
+
   private async getOrCreateCart(userId: string): Promise<Order> {
     let order = await this.orderRepo.findOne({
       where: { userId, status: 'pending' },
@@ -35,6 +41,7 @@ export class CartService {
       order = this.orderRepo.create({
         userId,
         status: 'pending',
+        sessionId: this.generateSessionId(),
       });
       await this.orderRepo.save(order);
     }
@@ -74,6 +81,33 @@ export class CartService {
       };
     }
 
+    // Auto-repair: If any items have null prices, fix them now
+    let needsSave = false;
+    for (const item of order.items) {
+      if (item.unitPrice === null || Number(item.totalPrice) === 0) {
+        const product = await this.productRepo.findOne({ where: { id: item.productId } });
+        if (product) {
+          const basePrice = Number(product.basePrice);
+          const breakPrice = product.breakPrice ? Number(product.breakPrice) : basePrice;
+          const unitPrice = (product.breakQty && item.qty >= product.breakQty) ? breakPrice : basePrice;
+          
+          item.unitPrice = unitPrice;
+          item.totalPrice = item.qty * unitPrice;
+          await this.orderItemRepo.save(item);
+          needsSave = true;
+        }
+      }
+    }
+
+    if (needsSave) {
+      await this.recalc(order.id);
+      // Re-fetch to get updated totals
+      return this.orderRepo.findOne({
+        where: { id: order.id },
+        relations: ['items'],
+      });
+    }
+
     return order;
   }
 
@@ -102,11 +136,13 @@ export class CartService {
     });
 
     const newQty = item ? item.qty + dto.quantity : dto.quantity;
+    const basePrice = Number(product.basePrice);
+    const breakPrice = product.breakPrice ? Number(product.breakPrice) : basePrice;
 
     const unitPrice =
-      newQty >= product.breakQty
-        ? product.breakPrice
-        : product.basePrice;
+      product.breakQty && newQty >= product.breakQty
+        ? breakPrice
+        : basePrice;
 
     const totalPrice = newQty * unitPrice;
 
@@ -121,7 +157,7 @@ export class CartService {
         productId: product.id,
         name: product.name,
         sku: product.sku,
-        price: product.basePrice,
+        price: basePrice,
         qty: newQty,
         unitPrice,
         totalPrice,
@@ -132,7 +168,11 @@ export class CartService {
 
     await this.recalc(order.id);
 
-    return { message: 'Item added to cart' };
+    const updatedCart = await this.getCart(userId);
+    return {
+      message: 'Item added to cart',
+      cart: updatedCart,
+    };
   }
 
   async updateCartItem(
@@ -164,10 +204,13 @@ export class CartService {
         `Minimum quantity is ${product.minQty}`,
       );
 
+    const basePrice = Number(product.basePrice);
+    const breakPrice = product.breakPrice ? Number(product.breakPrice) : basePrice;
+
     const unitPrice =
-      dto.quantity >= product.breakQty
-        ? product.breakPrice
-        : product.basePrice;
+      product.breakQty && dto.quantity >= product.breakQty
+        ? breakPrice
+        : basePrice;
 
     const totalPrice = dto.quantity * unitPrice;
 
@@ -179,7 +222,11 @@ export class CartService {
 
     await this.recalc(order.id);
 
-    return { message: 'Cart item updated' };
+    const updatedCart = await this.getCart(userId);
+    return {
+      message: 'Cart item updated',
+      cart: updatedCart,
+    };
   }
 
   async removeCartItem(userId: string, itemId: string) {
@@ -200,7 +247,11 @@ export class CartService {
 
     await this.recalc(order.id);
 
-    return { message: 'Item removed' };
+    const updatedCart = await this.getCart(userId);
+    return {
+      message: 'Item removed',
+      cart: updatedCart,
+    };
   }
 
   async clearCart(userId: string) {
@@ -214,6 +265,10 @@ export class CartService {
 
     await this.recalc(order.id);
 
-    return { message: 'Cart cleared' };
+    const updatedCart = await this.getCart(userId);
+    return {
+      message: 'Cart cleared',
+      cart: updatedCart,
+    };
   }
 }

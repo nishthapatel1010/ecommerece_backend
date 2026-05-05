@@ -7,16 +7,78 @@ import {
   Param,
   Body,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  InternalServerErrorException,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ProductAdminService } from '../services/product.admin.service';
 import { CreateProductDto } from '../dto/product/create-product.dto';
 import { UpdateProductDto } from '../dto/product/update-product.dto';
+import { UploadService } from '../../upload/upload.service';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { UserRole } from '../../user/entities/user.entity';
+
+import { env } from '../../../config/env';
 
 @ApiTags('Admin Products')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
 @Controller('admin/products')
 export class ProductAdminController {
-  constructor(private readonly service: ProductAdminService) {}
+  constructor(
+    private readonly service: ProductAdminService,
+    private readonly uploadService: UploadService,
+  ) {}
+
+  @Post('upload-image')
+  @ApiOperation({ summary: 'Upload a product image to Cloudinary' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadProductImage(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: env.MAX_FILE_SIZE }),
+          new FileTypeValidator({ fileType: env.ALLOWED_EXTENSIONS }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    try {
+      const result = await this.uploadService.uploadImage(file);
+      return {
+        success: true,
+        message: 'Image uploaded successfully',
+        data: {
+          url: result.secure_url,
+          public_id: result.public_id,
+        },
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to upload image to Cloudinary');
+    }
+  }
 
   @Post()
   create(@Body() dto: CreateProductDto) {

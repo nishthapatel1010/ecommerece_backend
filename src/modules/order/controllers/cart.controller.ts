@@ -21,6 +21,9 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../modules/user/entities/user.entity';
 
 
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.BUYER)
 @Controller('cart')
@@ -50,6 +53,11 @@ export class CartController {
     );
   }
 
+  @Delete('clear')
+  clearCart(@Req() req: any) {
+    return this.cartService.clearCart(req.user.id);
+  }
+
   @Delete(':itemId')
   removeCartItem(
     @Req() req: any,
@@ -59,10 +67,5 @@ export class CartController {
       req.user.id,
       itemId,
     );
-  }
-
-  @Delete('clear')
-  clearCart(@Req() req: any) {
-    return this.cartService.clearCart(req.user.id);
   }
 }

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from '../../user/entities/user.entity';
 import { BuyerRequest, BuyerRequestStatus } from '../../user/entities/buyer-request.entity';
@@ -9,7 +10,6 @@ import { AuthToken } from '../../user/entities/auth-token.entity';
 import { BuyerRegisterDto } from '../dto/buyer-register.dto';
 import { BuyerLoginDto, BuyerLoginWithCodeDto } from '../dto/buyer-login.dto';
 import { AdminRegisterDto, AdminLoginDto } from '../dto/admin-auth.dto';
-import { env } from '../../../config/env';
 import { AdminService } from '../../admin/services/admin.service';
 
 @Injectable()
@@ -20,7 +20,8 @@ export class AuthService {
     @InjectRepository(AuthToken) private readonly authTokenRepo: Repository<AuthToken>,
     private readonly jwtService: JwtService,
     private readonly adminService: AdminService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) { }
 
   async adminRegister(dto: AdminRegisterDto) {
     const exists = await this.userRepo.findOne({ where: { email: dto.email } });
@@ -111,7 +112,7 @@ export class AuthService {
     let message = 'Registration successful. Awaiting admin approval.';
     let isApproved = false;
 
-    if (env.AUTO_APPROVE_BUYERS) {
+    if (this.configService.get<string>('AUTO_APPROVE_BUYERS') === 'true') {
       await this.adminService.approveBuyer(user.id);
       message = 'Registration successful. Auto-approved by system.';
       isApproved = true;
@@ -176,23 +177,24 @@ export class AuthService {
   async refreshToken(token: string) {
     let payload: any;
     try {
-      payload = this.jwtService.verify(token, { secret: env.JWT_REFRESH_SECRET });
+      const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+      payload = this.jwtService.verify(token, { secret });
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
 
-    const tokenRecord = await this.authTokenRepo.findOne({ where: { user_id: payload.sub } });
+    const tokenRecord = await this.authTokenRepo.findOne({ where: { user_id: payload.id } });
     if (!tokenRecord) throw new UnauthorizedException('Refresh token not found.');
 
     const isMatch = await bcrypt.compare(token, tokenRecord.refresh_token);
     if (!isMatch) throw new UnauthorizedException('Refresh token mismatch.');
 
     if (new Date() > tokenRecord.expires_at) {
-      await this.authTokenRepo.delete({ user_id: payload.sub });
+      await this.authTokenRepo.delete({ user_id: payload.id });
       throw new UnauthorizedException('Refresh token expired. Please login again.');
     }
 
-    const user = await this.userRepo.findOne({ where: { id: payload.sub } });
+    const user = await this.userRepo.findOne({ where: { id: payload.id } });
     if (!user) throw new UnauthorizedException('User not found.');
 
     await this.authTokenRepo.delete({ user_id: user.id });
@@ -211,16 +213,16 @@ export class AuthService {
   }
 
   private async generateTokenPair(user: User) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { id: user.id, email: user.email, role: user.role };
 
     const access_token = this.jwtService.sign(payload, {
-      secret: env.JWT_SECRET,
-      expiresIn: env.JWT_EXPIRES_IN as any,
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN') as any,
     });
 
     const refresh_token = this.jwtService.sign(payload, {
-      secret: env.JWT_REFRESH_SECRET,
-      expiresIn: env.JWT_REFRESH_EXPIRES_IN as any,
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') as any,
     });
 
     const hashed = await bcrypt.hash(refresh_token, 10);

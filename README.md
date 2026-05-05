@@ -96,3 +96,15 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+Local Development
+To run the server locally with auto-reloading enabled (it automatically restarts when you save a file):
+
+bash
+npm run start:dev
+
+Production
+To start the compiled, production-ready server on Render or any other hosting provider:
+
+bash
+npm run start:prod

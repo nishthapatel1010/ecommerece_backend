@@ -11,6 +11,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 
+import { env } from '../../config/env';
+
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
@@ -21,8 +23,8 @@ export class UploadController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-          new FileTypeValidator({ fileType: 'image/(png|jpeg|jpg|webp)' }),
+          new MaxFileSizeValidator({ maxSize: env.MAX_FILE_SIZE }),
+          new FileTypeValidator({ fileType: env.ALLOWED_EXTENSIONS }),
         ],
       }),
     )

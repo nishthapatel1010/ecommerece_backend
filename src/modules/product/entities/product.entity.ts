@@ -55,6 +55,9 @@ export class Product {
   @Column('int', { name: 'min_qty', nullable: true })
   minQty!: number;
 
+  @Column('int', { default: 0 })
+  stock!: number;
+
   @Column({ default: true })
   available!: boolean;
 
