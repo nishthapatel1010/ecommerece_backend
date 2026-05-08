@@ -35,4 +35,5 @@ export const env = {
     return parsed < 1000 ? parsed * 1024 * 1024 : parsed;
   })(),
   ALLOWED_EXTENSIONS: process.env.ALLOWED_EXTENSIONS ?? 'image/(png|jpeg|jpg|webp)',
+  ALLOWED_PRODUCT_IMPORT_TYPES: process.env.ALLOWED_PRODUCT_IMPORT_TYPES ?? 'text/csv,text/plain,application/vnd.ms-excel',
 } as const;

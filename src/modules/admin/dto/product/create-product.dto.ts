@@ -33,6 +33,10 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
+  imagePublicId?: string;
+
+  @IsOptional()
+  @IsString()
   size?: string;
 
   @IsOptional()

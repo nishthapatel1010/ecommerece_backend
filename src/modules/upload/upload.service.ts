@@ -6,15 +6,26 @@ import { Readable } from 'stream';
 export class UploadService {
   constructor(@Inject('CLOUDINARY') private readonly cloudinaryInstance: any) {}
 
-  async uploadImage(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
+  async uploadImage(
+    file: Express.Multer.File,
+    folder: string = 'samples/Beautyshop_ecommerce',
+    sku?: string,
+    itemNumber?: string
+  ): Promise<UploadApiResponse | UploadApiErrorResponse> {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
 
+    // Determine target folder
+    const targetFolder = sku && itemNumber 
+      ? `samples/Beautyshop_ecommerce/${sku}/${itemNumber}`
+      : folder;
+
     return new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
         {
-          folder: 'products',
+          folder: targetFolder,
+          transformation: [{ width: 1200, crop: 'limit' }],
         },
         (error, result) => {
           if (error) return reject(error);
@@ -28,6 +39,39 @@ export class UploadService {
       stream.push(file.buffer);
       stream.push(null);
       stream.pipe(upload);
+    });
+  }
+
+  async uploadFromUrl(
+    url: string,
+    folder: string = 'samples/Beautyshop_ecommerce'
+  ): Promise<UploadApiResponse | UploadApiErrorResponse> {
+    if (!url) {
+      throw new BadRequestException('No URL provided');
+    }
+
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload(url, {
+        folder,
+        transformation: [{ width: 1200, crop: 'limit' }],
+      }, (error, result) => {
+        if (error) return reject(error);
+        if (!result) return reject(new Error('Upload failed: no result from Cloudinary'));
+        resolve(result);
+      });
+    });
+  }
+
+  async deleteImage(publicId: string): Promise<any> {
+    if (!publicId) return;
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) {
+          console.error('Cloudinary delete error:', error);
+          return resolve(null); // Continue even if delete fails as per requirement
+        }
+        resolve(result);
+      });
     });
   }
 }

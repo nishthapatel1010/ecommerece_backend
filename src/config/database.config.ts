@@ -12,7 +12,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     }
 
     const host = databaseUrl.split('@')[1]?.split('/')[0] || 'Remote Server';
-    console.log(`🚀 Database: Connected to PRODUCTION server at ${host}`);
+    console.log(`Database: Connected to PRODUCTION server at ${host}`);
 
     return {
       type: 'postgres',
@@ -37,7 +37,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
     throw new Error('Missing database development credentials');
   }
 
-  console.log(`🛠️ Database: Connected to DEVELOPMENT server at ${host}:${port}`);
+  console.log(` Database: Connected to DEVELOPMENT server at ${host}:${port}`);
 
   return {
     type: 'postgres',

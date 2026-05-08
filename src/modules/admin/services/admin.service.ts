@@ -1,24 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { User, UserStatus } from '../../user/entities/user.entity';
-import { BuyerRequest, BuyerRequestStatus } from '../../user/entities/buyer-request.entity';
-import { BuyerProfile } from '../../user/entities/buyer-profile.entity';
+import { BuyerRequestStatus } from '../../user/entities/buyer-request.entity';
+import { UserRepository } from '../../user/repositories/user.repository';
+import { BuyerRequestRepository } from '../../user/repositories/buyer-request.repository';
+import { BuyerProfileRepository } from '../../user/repositories/buyer-profile.repository';
 
 @Injectable()
 export class AdminService {
   constructor(
-    @InjectRepository(User) private readonly userRepo: Repository<User>,
-    @InjectRepository(BuyerRequest) private readonly buyerRequestRepo: Repository<BuyerRequest>,
-    @InjectRepository(BuyerProfile) private readonly profileRepo: Repository<BuyerProfile>,
+    private readonly userRepo: UserRepository,
+    private readonly buyerRequestRepo: BuyerRequestRepository,
+    private readonly profileRepo: BuyerProfileRepository,
   ) {}
 
   async getAllBuyerRequests() {
-    const requests = await this.buyerRequestRepo.find({
-      where: { status: BuyerRequestStatus.PENDING },
-      relations: ['user'],
-      order: { created_at: 'DESC' },
-    });
+    const requests = await this.buyerRequestRepo.findPendingRequests();
 
     return {
       success: true,

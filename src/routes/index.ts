@@ -4,5 +4,6 @@ import { ProductModule } from '../modules/product/product.module';
 import { OrderModule } from '../modules/order/order.module';
 import { HealthModule } from '../modules/health/health.module';
 import { AdminModule } from '../modules/admin/admin.module';
+import { PaymentModule } from '../modules/payment/payment.module';
 
-export const AppRoutes = [AuthModule, UserModule, ProductModule, OrderModule, HealthModule, AdminModule];
+export const AppRoutes = [AuthModule, UserModule, ProductModule, OrderModule, HealthModule, AdminModule, PaymentModule];

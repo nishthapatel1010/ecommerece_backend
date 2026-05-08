@@ -12,13 +12,13 @@ async function bootstrap() {
 
   const allowedOrigins: string[] = [];
 
-  // Add frontend URL from env (set this on Render/your host)
+  //frontend URL from env 
   if (process.env.FRONTEND_URL) {
     const origins = process.env.FRONTEND_URL.split(',').map((url) => url.trim().replace(/\/$/, ''));
     allowedOrigins.push(...origins);
   }
 
-  // Always allow the backend's own Render URL (Swagger UI, health checks, etc.)
+  
   if (process.env.RENDER_EXTERNAL_URL) {
     allowedOrigins.push(process.env.RENDER_EXTERNAL_URL.trim().replace(/\/$/, ''));
   }
@@ -97,7 +97,7 @@ async function bootstrap() {
     : `http://localhost:${port}`;
 
   console.log(`Server is running on ${baseUrl}`);
-  console.log(`CORS allowed origins: ${allowedOrigins.join(', ') || 'ALL (no origins configured)'}`);
+  // console.log(`CORS allowed origins: ${allowedOrigins.join(', ') || 'ALL (no origins configured)'}`);
   console.log(`Database connected successfully`);
   console.log(`Swagger docs available at ${baseUrl}/api/docs`);
 }

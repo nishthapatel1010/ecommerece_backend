@@ -25,6 +25,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../user/entities/user.entity';
+import { CSVValidationPipe } from '../../../common/pipes/csv-validation.pipe';
 
 import { env } from '../../../config/env';
 
@@ -50,6 +51,8 @@ export class ProductAdminController {
           type: 'string',
           format: 'binary',
         },
+        sku: { type: 'string' },
+        itemNumber: { type: 'string' },
       },
     },
   })
@@ -64,9 +67,11 @@ export class ProductAdminController {
       }),
     )
     file: Express.Multer.File,
+    @Body('sku') sku?: string,
+    @Body('itemNumber') itemNumber?: string,
   ) {
     try {
-      const result = await this.uploadService.uploadImage(file);
+      const result = await this.uploadService.uploadImage(file, 'samples/Beautyshop_ecommerce', sku, itemNumber);
       return {
         success: true,
         message: 'Image uploaded successfully',
@@ -114,5 +119,26 @@ export class ProductAdminController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.service.delete(id);
+  }
+
+  @Post('import')
+  @ApiOperation({ summary: 'Bulk import products via CSV' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async importProducts(
+    @UploadedFile(new CSVValidationPipe()) file: Express.Multer.File,
+  ) {
+    return this.service.importProducts(file.buffer);
   }
 }
