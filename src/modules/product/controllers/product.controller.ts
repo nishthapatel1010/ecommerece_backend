@@ -1,16 +1,24 @@
-
-
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProductService } from '../services/product.service';
 import { GetProductsDto } from '../dto/get-products.dto';
+import { VoiceSearchDto } from '../dto/voice-search.dto';
 
+@ApiTags('Products')
 @Controller()
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get('products')
+  @ApiOperation({ summary: 'Get products with filters and pagination' })
   getProducts(@Query() query: GetProductsDto) {
     return this.productService.getProducts(query);
+  }
+
+  @Get('products/voice-search')
+  @ApiOperation({ summary: 'Voice-to-text Filter search' })
+  voiceSearch(@Query() query: VoiceSearchDto) {
+    return this.productService.voiceSearch(query);
   }
 
   @Get('products/:id')

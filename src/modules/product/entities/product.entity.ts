@@ -1,4 +1,3 @@
-// src/modules/product/entities/product.entity.ts
 
 import {
   Entity,
@@ -8,6 +7,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import { formatProductImage } from '../../../common/utils/cloudinary.util';
 
 @Entity('products')
 @Index(['name'])
@@ -28,11 +28,26 @@ export class Product {
   @Column({ nullable: true })
   upc!: string;
 
-  @Column({ name: 'item_number', nullable: true })
+  @Column({ name: 'item_number', unique: true, nullable: true })
   itemNumber!: string;
 
   @Column({ name: 'image_url', nullable: true })
   imageUrl!: string;
+
+  @Column({ name: 'image_public_id', nullable: true })
+  imagePublicId!: string;
+
+  get thumbnail(): string {
+    return formatProductImage(this.imagePublicId, 'thumbnail');
+  }
+
+  get grid(): string {
+    return formatProductImage(this.imagePublicId, 'grid');
+  }
+
+  get detail(): string {
+    return formatProductImage(this.imagePublicId, 'detail');
+  }
 
   @Column({ nullable: true })
   size!: string;
