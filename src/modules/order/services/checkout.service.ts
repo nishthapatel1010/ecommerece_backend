@@ -1,18 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { Product } from '../../product/entities/product.entity';
+import { PaymentsService } from '../../payment/services/payments.service';
+import { OrderRepository } from '../repositories/order.repository';
+import { ProductRepository } from '../../product/repositories/product.repository';
 
 @Injectable()
 export class CheckoutService {
   constructor(
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
+    private readonly orderRepository: OrderRepository,
+    private readonly productRepository: ProductRepository,
     private readonly dataSource: DataSource,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   async getSummary(userId: string) {
@@ -52,7 +53,6 @@ export class CheckoutService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Get pending order
       const order = await queryRunner.manager.findOne(Order, {
         where: { userId, status: 'pending' },
         relations: ['items'],
@@ -62,7 +62,6 @@ export class CheckoutService {
         throw new BadRequestException('Cart is empty or not found');
       }
 
-      // 2. Validate Address
       if (!order.billAddress1 || !order.shipAddress1) {
         throw new BadRequestException('Billing and shipping addresses are required');
       }
@@ -70,9 +69,7 @@ export class CheckoutService {
       let grandTotal = 0;
       let totalQty = 0;
 
-      // 3. Process each item
       for (const item of order.items) {
-        // Lock product row
         const product = await queryRunner.manager.findOne(Product, {
           where: { id: item.productId },
           lock: { mode: 'pessimistic_write' },
@@ -86,7 +83,6 @@ export class CheckoutService {
           throw new BadRequestException(`Insufficient stock for product: ${item.name}`);
         }
 
-        // 4. Recalculate Price
         let currentUnitPrice = Number(product.basePrice);
         if (product.breakQty && item.qty >= product.breakQty && product.breakPrice) {
           currentUnitPrice = Number(product.breakPrice);
@@ -94,12 +90,10 @@ export class CheckoutService {
 
         const currentTotalPrice = currentUnitPrice * item.qty;
 
-        // Update item details
         item.unitPrice = currentUnitPrice;
         item.totalPrice = currentTotalPrice;
         await queryRunner.manager.save(OrderItem, item);
 
-        // Deduct stock
         product.stock -= item.qty;
         await queryRunner.manager.save(Product, product);
 
@@ -107,12 +101,13 @@ export class CheckoutService {
         totalQty += item.qty;
       }
 
-      // 5. Update Order
       order.totalAmount = grandTotal;
       order.itemCount = totalQty;
       order.status = 'placed';
-      order.groupNo = this.generateOrderNumber(); // <--- Assign readable Order Number
+      order.groupNo = this.generateOrderNumber();
       const savedOrder = await queryRunner.manager.save(Order, order);
+
+      await this.paymentsService.createPayment(savedOrder.id, savedOrder.totalAmount);
 
       await queryRunner.commitTransaction();
 
@@ -129,6 +124,7 @@ export class CheckoutService {
       await queryRunner.release();
     }
   }
+
   async exportCartCsv(userId: string): Promise<string> {
     const order = await this.orderRepository.findOne({
       where: { userId, status: 'pending' },
@@ -161,21 +157,19 @@ export class CheckoutService {
 
     const lines: string[] = [];
 
-    // Header rows — matches the screenshot format
     lines.push(`${escape(sessionId)},,${escape(date)}`);
     lines.push(`${escape(billCo)},Ship To:,${escape(shipCo)},${escape(shipAddr)},${escape(shipCity)},${escape(shipState)},,${escape(shipZip)}`);
     lines.push(`${escape(sessionId)},${escape(shipping)}`);
     lines.push('');
 
-    // Column headers
     lines.push('ItemNo,Description,Size,Promo,CaseUnit,Quantity,Unit,UnitPrice,Extended');
 
-    // Load product details for size/caseUnit/unit
     const productIds = order.items.map((i) => i.productId).filter(Boolean);
-    const products = await this.productRepository.findByIds(productIds);
+    const products = await this.productRepository.find({
+      where: { id: In(productIds) }
+    });
     const productMap = new Map(products.map((p) => [p.id, p]));
 
-    // Item rows
     for (const item of order.items) {
       const product = productMap.get(item.productId);
       const sku = escape(item.sku);

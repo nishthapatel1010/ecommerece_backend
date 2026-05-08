@@ -4,26 +4,20 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 import { Order } from '../entities/order.entity';
-import { OrderItem } from '../entities/order-item.entity';
 import { AddToCartDto } from '../dto/add-to-cart.dto';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
-import { Product } from '../../product/entities/product.entity';
+import { OrderRepository } from '../repositories/order.repository';
+import { OrderItemRepository } from '../repositories/order-item.repository';
+import { ProductRepository } from '../../product/repositories/product.repository';
 
 @Injectable()
 export class CartService {
   constructor(
-    @InjectRepository(Order)
-    private readonly orderRepo: Repository<Order>,
-
-    @InjectRepository(OrderItem)
-    private readonly orderItemRepo: Repository<OrderItem>,
-
-    @InjectRepository(Product)
-    private readonly productRepo: Repository<Product>,
+    private readonly orderRepo: OrderRepository,
+    private readonly orderItemRepo: OrderItemRepository,
+    private readonly productRepo: ProductRepository,
   ) {}
 
   private generateSessionId(): string {
@@ -81,7 +75,6 @@ export class CartService {
       };
     }
 
-    // Auto-repair: If any items have null prices, fix them now
     let needsSave = false;
     for (const item of order.items) {
       if (item.unitPrice === null || Number(item.totalPrice) === 0) {
@@ -101,7 +94,6 @@ export class CartService {
 
     if (needsSave) {
       await this.recalc(order.id);
-      // Re-fetch to get updated totals
       return this.orderRepo.findOne({
         where: { id: order.id },
         relations: ['items'],

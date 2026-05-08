@@ -1,17 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Order } from '../entities/order.entity';
-import { SaveAddressDto } from '../dto/address.dto';
+import { OrderRepository } from '../repositories/order.repository';
 
 @Injectable()
 export class AddressService {
   constructor(
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
+    private readonly orderRepository: OrderRepository,
   ) {}
 
-  async saveAddress(userId: string, dto: SaveAddressDto): Promise<Order> {
+  async saveAddress(userId: string, dto: any): Promise<any> {
     const order = await this.orderRepository.findOne({
       where: { userId, status: 'pending' },
     });
@@ -20,7 +16,6 @@ export class AddressService {
       throw new NotFoundException('No pending cart found for this user');
     }
 
-    // Map DTO to Order entity
     order.billCompany = dto.billCompany;
     order.billAddress1 = dto.billAddress1;
     order.billCity = dto.billCity;

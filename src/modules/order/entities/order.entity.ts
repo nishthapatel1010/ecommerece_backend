@@ -1,14 +1,36 @@
-// src/modules/cart/entities/order.entity.ts
+// src/modules/order/entities/order.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  JoinColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
+import { Payment } from '../../payment/entities/payment.entity';
+import { OrderTimeline } from './order-timeline.entity';
+
+export enum OrderStatus {
+  PLACED = 'placed',
+  PROCESSING = 'processing',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled',
+}
+
+export enum PaymentStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+}
+
+export enum PaymentMethod {
+  COD = 'COD',
+  ONLINE = 'ONLINE',
+}
 
 @Entity('orders')
 @Index(['userId', 'status'])
@@ -79,13 +101,31 @@ export class Order {
   @Column({ name: 'session_note', type: 'text', nullable: true })
   sessionNote!: string;
 
-  @Column({ default: 'pending' })
+  @Column({ default: OrderStatus.PLACED })
   status!: string;
+
+  @Column({ name: 'payment_status', default: PaymentStatus.PENDING })
+  paymentStatus!: string;
+
+  @Column({ name: 'payment_method', default: PaymentMethod.COD })
+  paymentMethod!: string;
+
+  @Column({ name: 'tracking_number', nullable: true })
+  trackingNumber!: string;
+
+  @Column({ name: 'courier_name', nullable: true })
+  courierName!: string;
 
   @OneToMany(() => OrderItem, (item) => item.order, {
     cascade: true,
   })
   items!: OrderItem[];
+
+  @OneToOne(() => Payment, (p) => p.order, { cascade: true })
+  payment!: Payment;
+
+  @OneToMany(() => OrderTimeline, (t) => t.order)
+  timeline!: OrderTimeline[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

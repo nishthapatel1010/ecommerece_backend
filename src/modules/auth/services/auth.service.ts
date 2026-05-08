@@ -1,23 +1,23 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole, UserStatus } from '../../user/entities/user.entity';
-import { BuyerRequest, BuyerRequestStatus } from '../../user/entities/buyer-request.entity';
-import { AuthToken } from '../../user/entities/auth-token.entity';
+import { BuyerRequestStatus } from '../../user/entities/buyer-request.entity';
 import { BuyerRegisterDto } from '../dto/buyer-register.dto';
 import { BuyerLoginDto } from '../dto/buyer-login.dto';
 import { AdminRegisterDto, AdminLoginDto } from '../dto/admin-auth.dto';
 import { AdminService } from '../../admin/services/admin.service';
+import { UserRepository } from '../../user/repositories/user.repository';
+import { BuyerRequestRepository } from '../../user/repositories/buyer-request.repository';
+import { AuthTokenRepository } from '../../user/repositories/auth-token.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User) private readonly userRepo: Repository<User>,
-    @InjectRepository(BuyerRequest) private readonly buyerRequestRepo: Repository<BuyerRequest>,
-    @InjectRepository(AuthToken) private readonly authTokenRepo: Repository<AuthToken>,
+    private readonly userRepo: UserRepository,
+    private readonly buyerRequestRepo: BuyerRequestRepository,
+    private readonly authTokenRepo: AuthTokenRepository,
     private readonly jwtService: JwtService,
     private readonly adminService: AdminService,
     private readonly configService: ConfigService,
@@ -134,7 +134,6 @@ export class AuthService {
   async buyerLogin(dto: BuyerLoginDto) {
     const { email, password, cid } = dto;
 
-    // 1. Validate that exactly one of password or cid is provided
     if ((password && cid) || (!password && !cid)) {
       throw new BadRequestException('Please provide either a password or a CID code, but not both.');
     }
@@ -142,7 +141,6 @@ export class AuthService {
     const user = await this.userRepo.findOne({ where: { email, role: UserRole.BUYER } });
     if (!user) throw new UnauthorizedException('Invalid credentials.');
 
-    // 2. Validate based on provided credential
     if (password) {
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) throw new UnauthorizedException('Invalid credentials.');

@@ -8,6 +8,7 @@ import { User } from '../user/entities/user.entity';
 import { BuyerRequest } from '../user/entities/buyer-request.entity';
 import { AuthToken } from '../user/entities/auth-token.entity';
 import { AdminModule } from '../admin/admin.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -21,9 +22,10 @@ import { AdminModule } from '../admin/admin.module';
       }),
     }),
     AdminModule,
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }
