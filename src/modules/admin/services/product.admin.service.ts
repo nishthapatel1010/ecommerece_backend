@@ -34,6 +34,20 @@ export class ProductAdminService {
     return this.repo.findAllAdmin(page, limit);
   }
 
+  async findBySku(sku: string) {
+    const product = await this.repo.findOne({
+      where: { sku },
+      select: ['id', 'name', 'basePrice', 'stock', 'imageUrl', 'available'],
+      withDeleted: false,
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with SKU "${sku}" not found`);
+    }
+
+    return product;
+  }
+
   async findOne(id: string) {
     const product = await this.repo.findOne({
       where: { id },

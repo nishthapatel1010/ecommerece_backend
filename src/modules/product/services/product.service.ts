@@ -33,6 +33,19 @@ export class ProductService {
     return product;
   }
 
+  async getProductBySku(sku: string) {
+    const product = await this.productRepo.findOne({
+      where: { sku },
+      select: ['id', 'name', 'basePrice', 'stock', 'imageUrl', 'available'],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with SKU "${sku}" not found`);
+    }
+
+    return product;
+  }
+
   async getSummary() {
     const totalItems = await this.productRepo.count();
 

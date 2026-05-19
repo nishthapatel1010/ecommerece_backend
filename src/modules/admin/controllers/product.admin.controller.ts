@@ -16,10 +16,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { ProductAdminService } from '../services/product.admin.service';
 import { CreateProductDto } from '../dto/product/create-product.dto';
 import { UpdateProductDto } from '../dto/product/update-product.dto';
+import { ProductLookupResponseDto } from '../dto/product/product-lookup-response.dto';
 import { UploadService } from '../../upload/upload.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -38,7 +39,7 @@ export class ProductAdminController {
   constructor(
     private readonly service: ProductAdminService,
     private readonly uploadService: UploadService,
-  ) {}
+  ) { }
 
   @Post('upload-image')
   @ApiOperation({ summary: 'Upload a product image to Cloudinary' })
@@ -96,6 +97,21 @@ export class ProductAdminController {
     @Query('limit') limit = 30,
   ) {
     return this.service.findAll(Number(page), Number(limit));
+  }
+
+  @Get('sku/:skuNumber')
+  @ApiOperation({ summary: 'High-performance Product Lookup by SKU for scanner' })
+  @ApiResponse({ status: 200, type: ProductLookupResponseDto })
+  async findOneBySku(@Param('skuNumber') skuNumber: string): Promise<ProductLookupResponseDto> {
+    const product = await this.service.findBySku(skuNumber);
+    return {
+      id: product.id,
+      name: product.name,
+      current_price: Number(product.basePrice),
+      stock_quantity: product.stock,
+      images: product.imageUrl ? [product.imageUrl] : [],
+      isAvailable: product.stock > 0 && product.available,
+    };
   }
 
   @Get(':id')
