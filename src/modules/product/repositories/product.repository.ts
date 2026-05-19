@@ -28,6 +28,7 @@ export class ProductRepository extends Repository<Product> {
       'product.breakQty',
       'product.breakPrice',
       'product.minQty',
+      'product.stock',
       'product.available',
     ]);
 
@@ -70,6 +71,8 @@ export class ProductRepository extends Repository<Product> {
       'product.sku',
       'product.basePrice',
       'product.imageUrl',
+      'product.stock',
+      'product.available',
     ]).where('product.available = :available', { available: true });
 
     qb.andWhere(
