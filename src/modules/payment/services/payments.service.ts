@@ -10,7 +10,7 @@ export class PaymentsService {
   constructor(
     private readonly paymentRepo: PaymentRepository,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async createPayment(orderId: string, amount: number) {
     const payment = this.paymentRepo.create({

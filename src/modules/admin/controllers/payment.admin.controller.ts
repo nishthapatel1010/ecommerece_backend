@@ -13,7 +13,7 @@ import { UserRole } from '../../user/entities/user.entity';
 @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
 @Controller('admin/payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(private readonly paymentsService: PaymentsService) { }
 
   @Get()
   @ApiOperation({ summary: 'List all payment records' })

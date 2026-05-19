@@ -4,7 +4,7 @@ import { Readable } from 'stream';
 
 @Injectable()
 export class UploadService {
-  constructor(@Inject('CLOUDINARY') private readonly cloudinaryInstance: any) {}
+  constructor(@Inject('CLOUDINARY') private readonly cloudinaryInstance: any) { }
 
   async uploadImage(
     file: Express.Multer.File,
@@ -17,7 +17,7 @@ export class UploadService {
     }
 
     // Determine target folder
-    const targetFolder = sku && itemNumber 
+    const targetFolder = sku && itemNumber
       ? `samples/Beautyshop_ecommerce/${sku}/${itemNumber}`
       : folder;
 

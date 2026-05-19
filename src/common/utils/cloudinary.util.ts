@@ -35,21 +35,21 @@ export function formatProductImage(publicId: string, type: ProductImageType = 'o
   }
 
   const transform = specificTransform ? `${baseTransform},${specificTransform}` : baseTransform;
-  
+
   // Construct the URL. Assuming we are using the v2 SDK and have the cloud name.
   // Since this is a utility that might be used without the SDK instance, 
   // we can use the delivery URL pattern: https://res.cloudinary.com/[cloud_name]/image/upload/[transform]/[public_id]
   // However, it's better to use the SDK if possible.
   // Given the constraint "Do not change my database schema", 
   // we should probably just return the transformation string or a helper that uses the SDK.
-  
+
   // If we don't have the cloud name here, we can't build the full URL.
   // But usually, publicId might already be a URL or just the ID.
   // In this project, image_public_id stores the public_id.
-  
+
   // Let's assume we need to return the FULL URL.
   // We can get the cloud name from environment variables.
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  
+
   return `https://res.cloudinary.com/${cloudName}/image/upload/${transform}/${publicId}`;
 }

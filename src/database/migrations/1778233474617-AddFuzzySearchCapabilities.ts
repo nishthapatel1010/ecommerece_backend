@@ -10,7 +10,7 @@ export class AddFuzzySearchCapabilities1778233474617 implements MigrationInterfa
         // NOTE: If your table name is "products", change "product" to "products" below
         await queryRunner.query(`
             CREATE INDEX IF NOT EXISTS "idx_product_name_trgm" 
-            ON "product" 
+            ON "products" 
             USING gin ("name" gin_trgm_ops);
         `);
 

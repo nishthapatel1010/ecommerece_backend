@@ -28,7 +28,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 @Roles(UserRole.BUYER)
 @Controller('cart')
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(private readonly cartService: CartService) { }
 
   @Get()
   getCart(@Req() req: any) {
